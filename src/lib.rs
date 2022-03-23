@@ -76,7 +76,7 @@ pub type RefMutWithOwner<O> = WithOwner<&'static mut <O as Deref>::Target, O>;
 /// when calling the `.borrowed()` or `borrowed_mut()` methods.
 pub struct WithOwner<B, O>
 where
-    B: for<'owner> BorrowFromOwner<'owner>,
+    B: for<'a> BorrowFromOwner<'a>,
     O: StableDeref,
 {
     // `borrowed` is declared first so that it will be dropped first.
@@ -119,7 +119,7 @@ where
 
 impl<B, O> WithOwner<B, O>
 where
-    B: for<'owner> BorrowFromOwner<'owner>,
+    B: for<'a> BorrowFromOwner<'a>,
     O: StableDeref,
 {
     // /// unsound for the same reason as `owner_mut` if `O` has interior mutability.
@@ -222,8 +222,8 @@ where
 
 impl<B, O> Clone for WithOwner<B, O>
 where
-    B: for<'owner> BorrowFromOwner<'owner>,
-    for<'owner> <B as BorrowFromOwner<'owner>>::Borrowed: Clone,
+    B: for<'a> BorrowFromOwner<'a>,
+    for<'a> <B as BorrowFromOwner<'a>>::Borrowed: Clone,
     O: CloneStableDeref,
 {
     fn clone(&self) -> Self {
@@ -236,8 +236,8 @@ where
 
 impl<B, O> Copy for WithOwner<B, O>
 where
-    B: for<'owner> BorrowFromOwner<'owner>,
-    for<'owner> <B as BorrowFromOwner<'owner>>::Borrowed: Copy,
+    B: for<'a> BorrowFromOwner<'a>,
+    for<'a> <B as BorrowFromOwner<'a>>::Borrowed: Copy,
     O: CloneStableDeref + Copy,
 {
 }
@@ -249,25 +249,25 @@ where
 /// ```
 /// # use borrowed_with_owner::BorrowFromOwner;
 /// # struct Foo<'a>(&'a ());
-/// impl<'owner> BorrowFromOwner<'owner> for Foo<'static> {
-///     type Borrowed = Foo<'owner>;
+/// impl<'a> BorrowFromOwner<'a> for Foo<'static> {
+///     type Borrowed = Foo<'a>;
 /// }
 /// ```
 ///
 /// Note that the `Self` type (the `Foo<'static>` in this case) of the impl could be any
 /// arbitrary type, and doesn't have to be related to the `Borrowed` type used in the impl.
 /// However, as a convention, we use the same type as the `Borrowed` type with `'static` used
-/// as the `'owner` lifetime.
-pub trait BorrowFromOwner<'owner> {
-    type Borrowed: 'owner;
+/// as the `'a` lifetime.
+pub trait BorrowFromOwner<'a> {
+    type Borrowed: 'a;
 }
 
-impl<'owner, T: ?Sized> BorrowFromOwner<'owner> for &'static T {
-    type Borrowed = &'owner T;
+impl<'a, T: ?Sized> BorrowFromOwner<'a> for &'static T {
+    type Borrowed = &'a T;
 }
 
-impl<'owner, T: ?Sized> BorrowFromOwner<'owner> for &'static mut T {
-    type Borrowed = &'owner mut T;
+impl<'a, T: ?Sized> BorrowFromOwner<'a> for &'static mut T {
+    type Borrowed = &'a mut T;
 }
 
 impl<'a> BorrowFromOwner<'a> for () {
