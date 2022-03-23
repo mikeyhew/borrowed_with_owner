@@ -72,7 +72,7 @@ pub type RefMutWithOwner<O> = WithOwner<&'static mut <O as Deref>::Target, O>;
 /// Note that `B` isn't necessarily the type of the borrowed object;
 /// rather it is just some type that implements `BorrowFromOwner`.
 /// `<B as BorrowFromOwner<'a>>::Borrowed` is the type of the borrowed object,
-/// where `'a` is the lifetime of the borrow of the `BorrowedWithOwner` struct
+/// where `'a` is the lifetime of the borrow of the `WithOwner` struct
 /// when calling the `.borrowed()` or `borrowed_mut()` methods.
 pub struct WithOwner<B, O>
 where
@@ -242,7 +242,7 @@ where
 {
 }
 
-/// A trait that you implement in order to use a borrowed type with `BorrowedWithOwner`.
+/// A trait that you implement in order to use a borrowed type with `WithOwner`.
 /// For example, if you have a type `Foo<'a>`, you would implement `for<'a> BorrowFromOwner<'a>`
 /// for it like so:
 ///
