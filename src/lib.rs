@@ -1,42 +1,58 @@
 /*!
 # `borrowed_with_owner`
 
-This crate gives you a way to store borrowed data like `&'a T` or `std::str::Chars<'a>` alongside its owner, giving it a `'static` lifetime.
+This crate gives you a way to store borrowed data like `&'a T` or `std::str::Chars<'a>` alongside its owner, giving it a `'static` lifetime. It is inspired by the `owning_ref` crate, but can handle more general cases without requiring you to write `unsafe` code (and hopefully does not have any soundness issues).
 
-For example, lets say you have a string and an iterator over the characters in that string, and you want to spawn a new thread that does something with them:
+## Why?
+
+As a motivating example, let's say you have a string `s`, and an iterator of the characters within `s` which you get from calling `s.chars()`, and you want to spawn a new thread that does something with them:
 
 ```compile_fail
-fn main() {
-    let s: String = "abc".into();
-    let mut chars = s.chars();
+let s: String = "abc".into();
+let mut chars = s.chars();
 
-    std::thread::spawn(move || {
-        assert_eq!(chars.nth(2), Some('c'));
-    });
-}
+std::thread::spawn(move || {
+    assert_eq!(chars.nth(2), Some('c'));
+});
 ```
 
-This example will fail to compile because the closure we pass to `std::thread::spawn` needs to be `'static`, and `chars` contains a borrow of `s` which cannot be `'static` because `s` is on the stack and will be dropped when the function returns.
+This example will fail to compile, because the closure we pass to `std::thread::spawn` needs to be `'static`, and `chars` contains a borrow of `s`. Anything borrowing `s` cannot be `'static` because `s` is on the stack and will be dropped when the function returns.
 
-To get around this issue, we could try using a library that provides a scoped thread abstraction such as `crossbeam` or `rayon`. This would let us pass a non-`'static` closure to the spawn function, and ensures that borrowed data on the stack will not be dropped prematurely by blocking the current function until the closure finishes running in the other thread.
-
-However, that may not fit our needs in every case: it may be that we want to let the child thread outlive the current function and move on to other things in the current thread, or we are using `async` Rust where at the time of writing there is no suitable way to spawn a scoped task without blocking the current thread while waiting for the child task to finish. Or it could be that we want to store `chars` in a `static` for some reason. In these cases, we could leak the string so that `chars` can have the `'static` lifetime:
+To get around this issue, we could try using a scoped thread API like the one recently introduced to Rust's standard library, currently available in nightly behind a feature flag (you can also use a library like `crossbeam` or `rayon` to get the same functionality in stable Rust):
 
 ```
-fn main() {
-    let s: String = "abc".into();
-    let s = Box::leak(s.into_boxed_str());
-    let mut chars = s.chars();
+#![feature(scoped_threads)]
 
-    std::thread::spawn(move || {
+let s: String = "abc".into();
+let mut chars = s.chars();
+
+// this function call will block until the closure passed to `scope.spawn()` finishes
+std::thread::scope(|scope| {
+    scope.spawn(|_| {
         assert_eq!(chars.nth(2), Some('c'));
     });
-}
+});
+```
+
+This lets us pass a non-`'static` closure to the `scope.spawn()` call, and ensures that borrowed data on the stack will not be dropped prematurely by blocking the current function until the closure finishes running in the other thread.
+
+However, that may not fit our needs in every case: it may be that we actually do want to let the child thread outlive the current scope; or we could be in the world of `async` Rust where, at the time of writing, there is no suitable way to spawn a scoped task that doesn't block the current thread if the child task needs time to finish. Or it could be that we want to store `chars` in a `static` for some reason. In these cases, we could leak the string so that `chars` can have the `'static` lifetime:
+
+```
+let s: String = "abc".into();
+let s = Box::leak(s.into_boxed_str());
+let mut chars = s.chars();
+
+std::thread::spawn(move || {
+    assert_eq!(chars.nth(2), Some('c'));
+});
 ```
 
 This works, but leaks memory: we will never get to reclaim the memory that `s` uses, so we wouldn't want to run this in a loop.
 
-With this library, however, we can do better: we can store `chars` and `s` together in a `WithOwner` and pass it to the spawned thread:
+## Enter `borrowed_with_owner`
+
+With this library, however, we can do better: you can bundle up `chars` together with its owner `s` so that, as a whole, the bundled `WithOwner` object fulfills the `'static` requirement. This bundled object can be passed to another thread, and then you can call its `.borrowed_mut()` method to safely get a reference to `chars` that is valid as long as the bundled object is in scope:
 
 ```
 use borrowed_with_owner::BorrowFromOwner;
@@ -64,10 +80,13 @@ fn main() {
 use stable_deref_trait::{CloneStableDeref, StableDeref};
 use std::ops::{Deref, DerefMut};
 
+/// An immutable (`&T`) reference along with its owner, `O`
 pub type RefWithOwner<O> = WithOwner<&'static <O as Deref>::Target, O>;
+
+/// A mutable (`&mut T`) reference along with its owner, `O`
 pub type RefMutWithOwner<O> = WithOwner<&'static mut <O as Deref>::Target, O>;
 
-/// a borrowed object held along with its owner, `O`.
+/// A borrowed object held along with its owner, `O`
 ///
 /// Note that `B` isn't necessarily the type of the borrowed object;
 /// rather it is just some type that implements `BorrowFromOwner`.
@@ -242,7 +261,8 @@ where
 {
 }
 
-/// A trait that you implement in order to use a borrowed type with `WithOwner`.
+/// A trait that you implement in order to use a borrowed type with `WithOwner`
+///
 /// For example, if you have a type `Foo<'a>`, you would implement `for<'a> BorrowFromOwner<'a>`
 /// for it like so:
 ///
