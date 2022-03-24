@@ -8,7 +8,7 @@ impl<'a> BorrowFromOwner<'a> for SplitWrapper<'static> {
 
 #[test]
 fn it_works() {
-    let string: String = format!("Hello, my name is Michael");
+    let string: String = "Hello, my name is Michael".into();
     let other_stuff = vec![1, 2, 3];
 
     let mut string_parts =

@@ -63,17 +63,15 @@ impl<'a> BorrowFromOwner<'a> for StdCharsBorrow {
     type Borrowed = std::str::Chars<'a>;
 }
 
-fn main() {
-    let s: String = "abc".into();
-    let mut chars_with_s = borrowed_with_owner::RefMutWithOwner::new(s)
-        .map::<StdCharsBorrow, _>(|s, _| s.chars());
+let s: String = "abc".into();
+let mut chars_with_s = borrowed_with_owner::RefMutWithOwner::new(s)
+    .map::<StdCharsBorrow, _>(|s, _| s.chars());
 
-    std::thread::spawn(move || {
-        let chars = chars_with_s.borrowed_mut();
+std::thread::spawn(move || {
+    let chars = chars_with_s.borrowed_mut();
 
-        assert_eq!(chars.nth(2), Some('c'));
-    });
-}
+    assert_eq!(chars.nth(2), Some('c'));
+});
 ```
 */
 
@@ -170,11 +168,13 @@ where
     }
 
     /// returns an `&`-reference to the borrowed value, with lifetime tied to the borrow of `self`
+    #[allow(clippy::needless_lifetimes)]
     pub fn borrowed<'a>(&'a self) -> &'a <B as BorrowFromOwner<'a>>::Borrowed {
         unsafe { &*Self::transmute_lifetime_ptr(&self.borrowed as *const _ as *mut _) }
     }
 
     /// returns an `&mut`-reference to the borrowed value, with lifetime tied to the borrow of `self`
+    #[allow(clippy::needless_lifetimes)]
     pub fn borrowed_mut<'a>(&'a mut self) -> &'a mut <B as BorrowFromOwner<'a>>::Borrowed {
         unsafe { &mut *Self::transmute_lifetime_ptr(&mut self.borrowed) }
     }
