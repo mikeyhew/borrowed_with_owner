@@ -28,7 +28,7 @@ let mut chars = s.chars();
 
 // this function call will block until the closure passed to `scope.spawn()` finishes
 std::thread::scope(|scope| {
-    scope.spawn(|_| {
+    scope.spawn(|| {
         assert_eq!(chars.nth(2), Some('c'));
     });
 });
