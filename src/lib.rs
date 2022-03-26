@@ -20,20 +20,23 @@ This example will fail to compile, because the closure we pass to `std::thread::
 
 To get around this issue, we could try using a scoped thread API like the one recently introduced to Rust's standard library, currently available in nightly behind a feature flag (you can also use a library like `crossbeam` or `rayon` to get the same functionality in stable Rust):
 
-```
-#![feature(scoped_threads)]
-
-let s: String = "abc".into();
-let mut chars = s.chars();
-
-// this function call will block until the closure passed to `scope.spawn()` finishes
-std::thread::scope(|scope| {
-    scope.spawn(|| {
-        assert_eq!(chars.nth(2), Some('c'));
-    });
-});
-```
-
+*/
+//! ```
+#![cfg_attr(not(feature = "nightly"), doc = "```")]
+#![cfg_attr(not(feature = "nightly"), doc = "```ignore")]
+//! #![feature(scoped_threads)]
+//!
+//! let s: String = "abc".into();
+//! let mut chars = s.chars();
+//!
+//! // this function call will block until the closure passed to `scope.spawn()` finishes
+//! std::thread::scope(|scope| {
+//!     scope.spawn(|| {
+//!         assert_eq!(chars.nth(2), Some('c'));
+//!     });
+//! });
+//! ```
+/*!
 This lets us pass a non-`'static` closure to the `scope.spawn()` call, and ensures that borrowed data on the stack will not be dropped prematurely by blocking the current function until the closure finishes running in the other thread.
 
 However, that may not fit our needs in every case: it may be that we actually do want to let the child thread outlive the current scope; or we could be in the world of `async` Rust where, at the time of writing, there is no suitable way to spawn a scoped task that doesn't block the current thread if the child task needs time to finish. Or it could be that we want to store `chars` in a `static` for some reason. In these cases, we could leak the string so that `chars` can have the `'static` lifetime:

@@ -21,17 +21,28 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - nightly
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly # for doc test using scoped threads
+          toolchain: ${{ matrix.toolchain }}
           override: true
+      - id: set_nightly_feature
+        run: |
+          if [ ${{ matrix.toolchain }} == "nightly" ]
+          then
+            echo "::set-output name=feature::--features nightly"
+          fi
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace
+          args: --workspace ${{ steps.set_nightly_feature.feature }}
 
   fmt:
     name: Rustfmt
