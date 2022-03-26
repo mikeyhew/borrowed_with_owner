@@ -33,16 +33,14 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
-      - id: set_nightly_feature
-        run: |
-          if [ ${{ matrix.toolchain }} == "nightly" ]
-          then
-            echo "::set-output name=feature::--features nightly"
-          fi
+      - name: Enable Nightly Feature
+        id: enable_nightly_feature
+        if: ${{ matrix.toolchain == 'nightly' }}
+        run: echo "::set-output name=feature_flag::--features nightly"
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace ${{ steps.set_nightly_feature.feature }}
+          args: --workspace ${{ steps.enable_nightly_feature.feature_flag }}
 
   fmt:
     name: Rustfmt
