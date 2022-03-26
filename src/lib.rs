@@ -1,7 +1,7 @@
 /*!
 # `borrowed_with_owner`
 
-This crate gives you a way to store borrowed data like `&'a T` or `std::str::Chars<'a>` alongside its owner, giving it a `'static` lifetime. It is inspired by the `owning_ref` crate, but can handle more general cases without requiring you to write `unsafe` code (and hopefully does not have any soundness issues).
+This crate gives you a way to store borrowed data like `&'a T` or `std::str::Chars<'a>` alongside its owner, giving it a `'static` lifetime. It is inspired by the `owning_ref` crate, but can handle arbitrary borrowed objects without requiring you to write `unsafe` code (and hopefully does not have any soundness issues).
 
 ## Why?
 
@@ -69,7 +69,6 @@ let mut chars_with_s = borrowed_with_owner::RefMutWithOwner::new(s)
 
 std::thread::spawn(move || {
     let chars = chars_with_s.borrowed_mut();
-
     assert_eq!(chars.nth(2), Some('c'));
 });
 ```
@@ -112,6 +111,7 @@ impl<O> RefWithOwner<O>
 where
     O: StableDeref,
 {
+    /// Creates a `RefWithOwner` with `&*owner` as the borrowed value
     pub fn new(owner: O) -> Self {
         // extend the lifetime of &T to &'static T,
         // so we can store it inside of `Self`
@@ -125,6 +125,7 @@ impl<O> RefMutWithOwner<O>
 where
     O: StableDeref + DerefMut,
 {
+    /// Creates a `RefMutWithOwner` with `&mut *owner` as the borrowed value
     pub fn new(mut owner: O) -> Self {
         // extend the lifetime of &mut T to &'static mut T,
         // so we can store it inside of `Self`
@@ -162,24 +163,24 @@ where
     //     &mut self.owner
     // }
 
-    /// drops the borrowed value and returns the owner
+    /// Drops the borrowed value and returns the owner
     pub fn into_owner(self) -> O {
         self.owner
     }
 
-    /// returns an `&`-reference to the borrowed value, with lifetime tied to the borrow of `self`
+    /// Returns an `&`-reference to the borrowed value, with lifetime tied to the borrow of `self`
     #[allow(clippy::needless_lifetimes)]
     pub fn borrowed<'a>(&'a self) -> &'a <B as BorrowFromOwner<'a>>::Borrowed {
         unsafe { &*Self::transmute_lifetime_ptr(&self.borrowed as *const _ as *mut _) }
     }
 
-    /// returns an `&mut`-reference to the borrowed value, with lifetime tied to the borrow of `self`
+    /// Returns an `&mut`-reference to the borrowed value, with lifetime tied to the borrow of `self`
     #[allow(clippy::needless_lifetimes)]
     pub fn borrowed_mut<'a>(&'a mut self) -> &'a mut <B as BorrowFromOwner<'a>>::Borrowed {
         unsafe { &mut *Self::transmute_lifetime_ptr(&mut self.borrowed) }
     }
 
-    /// calls `f` with the borrowed value, and returns a new `WithOwner` with the value returned
+    /// Calls `f` with the borrowed value, and returns a new `WithOwner` with the value returned
     /// by `f`. The second `&'a ()` argument to `f` is required because of compiler limitations
     /// and can be ignored.
     pub fn map<B2, F>(self, f: F) -> WithOwner<B2, O>
@@ -200,7 +201,7 @@ where
         }
     }
 
-    /// calls `f` with the borrowed value, and returns the value returned by `f` along with the owner.
+    /// Calls `f` with the borrowed value, and returns the value returned by `f` along with the owner
     /// Unlike `map`, the value returned by `f` cannot include any of the borrows in the input.
     pub fn with_borrowed<F, R>(self, f: F) -> (R, O)
     where
