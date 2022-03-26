@@ -204,19 +204,6 @@ where
         }
     }
 
-    /// Calls `f` with the borrowed value, and returns the value returned by `f` along with the owner
-    /// Unlike `map`, the value returned by `f` cannot include any of the borrows in the input.
-    pub fn with_borrowed<F, R>(self, f: F) -> (R, O)
-    where
-        F: for<'a> FnOnce(<B as BorrowFromOwner<'a>>::Borrowed) -> R,
-    {
-        let Self { owner, borrowed } = self;
-
-        let ret = f(unsafe { Self::transmute_lifetime(borrowed) });
-
-        (ret, owner)
-    }
-
     /// changes the lifetime of a `*mut Borrowed<'a>` to a `*mut Borrowed<'b>`
     unsafe fn transmute_lifetime_ptr<'a, 'b>(
         borrowed: *mut <B as BorrowFromOwner<'a>>::Borrowed,
