@@ -171,6 +171,24 @@ where
         self.owner
     }
 
+    /// Returns both the owner and the borrowed value, as long as the borrowed value
+    /// doesn't actually borrow from the owner anymore
+    pub fn into_parts(self) -> (O, <B as BorrowFromOwner<'static>>::Borrowed)
+    where
+        for<'a> <B as BorrowFromOwner<'a>>::Borrowed: 'static,
+    {
+        (self.owner, self.borrowed)
+    }
+
+    /// Drops the owner and returns the borrowed value, as long as it doesn't
+    /// actually borrow from the owner anymore
+    pub fn into_borrowed(self) -> <B as BorrowFromOwner<'static>>::Borrowed
+    where
+        for<'a> <B as BorrowFromOwner<'a>>::Borrowed: 'static,
+    {
+        self.borrowed
+    }
+
     /// Returns an `&`-reference to the borrowed value, with lifetime tied to the borrow of `self`
     #[allow(clippy::needless_lifetimes)]
     pub fn borrowed<'a>(&'a self) -> &'a <B as BorrowFromOwner<'a>>::Borrowed {
