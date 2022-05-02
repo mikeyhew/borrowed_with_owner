@@ -13,7 +13,7 @@ let mut chars = s.chars();
 
 std::thread::spawn(move || {
     assert_eq!(chars.nth(2), Some('c'));
-});
+}).join().unwrap();
 ```
 
 This example will fail to compile, because the closure we pass to `std::thread::spawn` needs to be `'static`, and `chars` contains a borrow of `s`. Anything borrowing `s` cannot be `'static` because `s` is on the stack and will be dropped when the function returns.
@@ -48,7 +48,7 @@ let mut chars = s.chars();
 
 std::thread::spawn(move || {
     assert_eq!(chars.nth(2), Some('c'));
-});
+}).join().unwrap();
 ```
 
 This works, but leaks memory: we will never get to reclaim the memory that `s` uses, so we wouldn't want to run this in a loop.
@@ -73,7 +73,7 @@ let mut chars_with_s = borrowed_with_owner::RefMutWithOwner::new(s)
 std::thread::spawn(move || {
     let chars = chars_with_s.borrowed_mut();
     assert_eq!(chars.nth(2), Some('c'));
-});
+}).join().unwrap();
 ```
 */
 

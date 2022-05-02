@@ -27,20 +27,27 @@ fn test_bumpalo_herd() {
         member.alloc_slice_fill_iter(iter)
     });
 
-    for _ in 0..2 {
-        let titles_with_herd = titles_with_herd.clone();
-        std::thread::spawn(move || {
-            let slice = titles_with_herd.borrowed();
-            assert_eq!(
-                slice,
-                &[
-                    "Mambo number 0",
-                    "Mambo number 1",
-                    "Mambo number 2",
-                    "Mambo number 3",
-                    "Mambo number 4",
-                ]
-            );
-        });
-    }
+    #[allow(clippy::needless_collect)]
+    let join_handles = (0..2)
+        .map(|_| {
+            let titles_with_herd = titles_with_herd.clone();
+            std::thread::spawn(move || {
+                let slice = titles_with_herd.borrowed();
+                assert_eq!(
+                    slice,
+                    &[
+                        "Mambo number 0",
+                        "Mambo number 1",
+                        "Mambo number 2",
+                        "Mambo number 3",
+                        "Mambo number 4",
+                    ]
+                );
+            })
+        })
+        .collect::<Vec<_>>();
+
+    join_handles.into_iter().for_each(|jh| {
+        jh.join().unwrap();
+    });
 }
