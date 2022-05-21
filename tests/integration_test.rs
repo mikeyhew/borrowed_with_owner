@@ -1,8 +1,8 @@
-use borrowed_with_owner::{BorrowFromOwner, RefWithOwner};
+use borrowed_with_owner::{BorrowWithLifetime, RefWithOwner};
 
 struct SplitWrapper<'a>(std::str::Split<'a, &'static str>);
 
-impl<'a> BorrowFromOwner<'a> for SplitWrapper<'static> {
+impl<'a> BorrowWithLifetime<'a> for SplitWrapper<'static> {
     type Borrowed = SplitWrapper<'a>;
 }
 

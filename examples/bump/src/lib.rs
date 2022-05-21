@@ -1,11 +1,11 @@
 #![cfg(test)]
-use borrowed_with_owner::{BorrowFromOwner, RefWithOwner};
+use borrowed_with_owner::{BorrowWithLifetime, RefWithOwner};
 use bumpalo_herd::Herd;
 use std::sync::Arc;
 
 struct BorrowSliceOfStrs;
 
-impl<'a> BorrowFromOwner<'a> for BorrowSliceOfStrs {
+impl<'a> BorrowWithLifetime<'a> for BorrowSliceOfStrs {
     type Borrowed = &'a [&'a str];
 }
 
