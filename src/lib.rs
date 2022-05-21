@@ -21,9 +21,8 @@ This example will fail to compile, because the closure we pass to `std::thread::
 To get around this issue, we could try using a scoped thread API like the one recently introduced to Rust's standard library, currently available in nightly behind a feature flag (you can also use a library like `crossbeam` or `rayon` to get the same functionality in stable Rust):
 
 */
-//! ```
-#![cfg_attr(not(feature = "nightly"), doc = "```")]
-#![cfg_attr(not(feature = "nightly"), doc = "```ignore")]
+#![cfg_attr(feature = "test_nightly", doc = "```")]
+#![cfg_attr(not(feature = "test_nightly"), doc = "```ignore")]
 //! #![feature(scoped_threads)]
 //!
 //! let s: String = "abc".into();
