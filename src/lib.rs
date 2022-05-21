@@ -53,9 +53,7 @@ std::thread::spawn(move || {
 
 This _works_, but it leaks memory: we will never get to reclaim the memory that `s` uses, so we wouldn't want to run this in a loop.
 
-## Enter `borrowed_with_owner`
-
-With this library, however, we can do better: you can bundle up `chars` together with its owner `s` so that, as a whole, the bundled `BorrowedWithOwner` object fulfills the `'static` requirement. This bundled object can be passed to another thread, and then you can call its `.borrowed_mut()` method to safely get a reference to `chars` that is valid as long as the bundled object is in scope:
+With `borrowed_with_owner`, however, we can do better: you can bundle up `chars` together with its owner `s` so that, as a whole, the bundled `BorrowedWithOwner` object fulfills the `'static` requirement. This bundled object can be passed to another thread, and then you can call its `.borrowed_mut()` method to safely get a reference to `chars` that is valid as long as the bundled object is in scope:
 
 ```
 use borrowed_with_owner::BorrowWithLifetime;
