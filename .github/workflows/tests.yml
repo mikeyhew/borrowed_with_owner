@@ -33,7 +33,7 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
-      - name: Enable Nightly Feature
+      - name: Enable test_nightly Feature
         id: enable_nightly_feature
         if: ${{ matrix.toolchain == 'nightly' }}
         run: echo "::set-output name=feature_flag::--features nightly"
