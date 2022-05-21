@@ -55,7 +55,7 @@ This works, but leaks memory: we will never get to reclaim the memory that `s` u
 
 ## Enter `borrowed_with_owner`
 
-With this library, however, we can do better: you can bundle up `chars` together with its owner `s` so that, as a whole, the bundled `WithOwner` object fulfills the `'static` requirement. This bundled object can be passed to another thread, and then you can call its `.borrowed_mut()` method to safely get a reference to `chars` that is valid as long as the bundled object is in scope:
+With this library, however, we can do better: you can bundle up `chars` together with its owner `s` so that, as a whole, the bundled `BorrowedWithOwner` object fulfills the `'static` requirement. This bundled object can be passed to another thread, and then you can call its `.borrowed_mut()` method to safely get a reference to `chars` that is valid as long as the bundled object is in scope:
 
 ```
 use borrowed_with_owner::BorrowFromOwner;
@@ -89,19 +89,19 @@ use stable_deref_trait::{CloneStableDeref, StableDeref};
 use std::ops::{Deref, DerefMut};
 
 /// An immutable (`&T`) reference along with its owner, `O`
-pub type RefWithOwner<O> = WithOwner<&'static <O as Deref>::Target, O>;
+pub type RefWithOwner<O> = BorrowedWithOwner<&'static <O as Deref>::Target, O>;
 
 /// A mutable (`&mut T`) reference along with its owner, `O`
-pub type RefMutWithOwner<O> = WithOwner<&'static mut <O as Deref>::Target, O>;
+pub type RefMutWithOwner<O> = BorrowedWithOwner<&'static mut <O as Deref>::Target, O>;
 
 /// A borrowed object held along with its owner, `O`
 ///
 /// Note that `B` isn't necessarily the type of the borrowed object;
 /// rather it is just some type that implements `BorrowFromOwner`.
 /// `<B as BorrowFromOwner<'a>>::Borrowed` is the type of the borrowed object,
-/// where `'a` is the lifetime of the borrow of the `WithOwner` struct
+/// where `'a` is the lifetime of the borrow of the `BorrowedWithOwner` struct
 /// when calling the `.borrowed()` or `borrowed_mut()` methods.
-pub struct WithOwner<B, O>
+pub struct BorrowedWithOwner<B, O>
 where
     B: for<'a> BorrowFromOwner<'a>,
     O: StableDeref,
@@ -146,7 +146,7 @@ where
     }
 }
 
-impl<B, O> WithOwner<B, O>
+impl<B, O> BorrowedWithOwner<B, O>
 where
     B: for<'a> BorrowFromOwner<'a>,
     O: StableDeref,
@@ -209,10 +209,10 @@ where
         unsafe { &mut *Self::transmute_lifetime_ptr(&mut self.borrowed) }
     }
 
-    /// Calls `f` with the borrowed value, and returns a new `WithOwner` with the value returned
+    /// Calls `f` with the borrowed value, and returns a new `BorrowedWithOwner` with the value returned
     /// by `f`. The second `&'a ()` argument to `f` is required because of compiler limitations
     /// and can be ignored.
-    pub fn map<B2, F>(self, f: F) -> WithOwner<B2, O>
+    pub fn map<B2, F>(self, f: F) -> BorrowedWithOwner<B2, O>
     where
         B2: for<'a> BorrowFromOwner<'a>,
         F: for<'a> FnOnce(
@@ -224,9 +224,9 @@ where
 
         let borrowed2 = f(unsafe { Self::transmute_lifetime(borrowed) }, &());
 
-        WithOwner {
+        BorrowedWithOwner {
             owner,
-            borrowed: unsafe { WithOwner::<B2, O>::transmute_lifetime(borrowed2) },
+            borrowed: unsafe { BorrowedWithOwner::<B2, O>::transmute_lifetime(borrowed2) },
         }
     }
 
@@ -256,7 +256,7 @@ where
     }
 }
 
-impl<B, O> Clone for WithOwner<B, O>
+impl<B, O> Clone for BorrowedWithOwner<B, O>
 where
     B: for<'a> BorrowFromOwner<'a>,
     for<'a> <B as BorrowFromOwner<'a>>::Borrowed: Clone,
@@ -270,7 +270,7 @@ where
     }
 }
 
-impl<B, O> Copy for WithOwner<B, O>
+impl<B, O> Copy for BorrowedWithOwner<B, O>
 where
     B: for<'a> BorrowFromOwner<'a>,
     for<'a> <B as BorrowFromOwner<'a>>::Borrowed: Copy,
@@ -278,7 +278,7 @@ where
 {
 }
 
-/// A trait that you implement in order to use a borrowed type with `WithOwner`
+/// A trait that you implement in order to use a borrowed type with `BorrowedWithOwner`
 ///
 /// For example, if you have a type `Foo<'a>`, you would implement `for<'a> BorrowFromOwner<'a>`
 /// for it like so:
