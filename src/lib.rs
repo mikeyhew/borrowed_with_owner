@@ -75,6 +75,14 @@ std::thread::spawn(move || {
     assert_eq!(chars.nth(2), Some('c'));
 }).join().unwrap();
 ```
+
+## Soundness assumptions
+
+This library is believed to be sound based on the following assumption:
+
+- `<T as BorrowedFromOwner<'a>>::Borrowed` will always have the same layout in memory for a given type `T`, regardless of the lifetime `'a`
+
+If you know a counter-example to this assumption, whether in stable Rust or in nightly using unstable features (such as soundness holes in specialization), or if you notice any other soundness issues with this libary, please let me know by [opening an issue](https://github.com/mikeyhew/borrowed_with_owner/issues/new).
 */
 
 use stable_deref_trait::{CloneStableDeref, StableDeref};
