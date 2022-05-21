@@ -293,8 +293,7 @@ where
 ///
 /// Note that the `Self` type (the `Foo<'static>` in this case) of the impl could be any
 /// arbitrary type, and doesn't have to be related to the `Borrowed` type used in the impl.
-/// However, as a convention, we use the same type as the `Borrowed` type with `'static` used
-/// as the `'a` lifetime.
+/// However, as a convention, we use `Borrowed` with the `'static` lifetime whenever possible.
 pub trait BorrowWithLifetime<'a> {
     type Borrowed: 'a;
 }
