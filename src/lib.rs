@@ -1,7 +1,7 @@
 /*!
 # `borrowed_with_owner`
 
-This crate gives you a way to store borrowed data like `&'a T` or `std::str::Chars<'a>` alongside its owner, giving it a `'static` lifetime. It is inspired by the `owning_ref` crate, but can handle arbitrary borrowed objects without requiring you to write `unsafe` code (and hopefully does not have any soundness issues).
+This crate gives you a way to store borrowed data like `&'a T` or `std::str::Chars<'a>` alongside its owner, giving it a `'static` lifetime. It is inspired by the `owning_ref` crate, but can handle arbitrary borrowed objects without requiring you to write `unsafe` code (and hopefully, unlike `owning_ref`, does not have any soundness issues).
 
 ## Why?
 
@@ -51,7 +51,7 @@ std::thread::spawn(move || {
 }).join().unwrap();
 ```
 
-This works, but leaks memory: we will never get to reclaim the memory that `s` uses, so we wouldn't want to run this in a loop.
+This _works_, but it leaks memory: we will never get to reclaim the memory that `s` uses, so we wouldn't want to run this in a loop.
 
 ## Enter `borrowed_with_owner`
 
@@ -234,8 +234,8 @@ where
     unsafe fn transmute_lifetime_ptr<'a, 'b>(
         borrowed: *mut <B as BorrowWithLifetime<'a>>::Borrowed,
     ) -> *mut <B as BorrowWithLifetime<'b>>::Borrowed {
-        // a simple pointer cast, i.e. `borrowed as *mut <B as BorrowWithLifetime<'b>>::Borrowed`
-        // doesn't work here because Rust complains that the lifetimes aren't the same
+        // a simple pointer cast doesn't work here (i.e. borrowed as *mut _)
+        // because Rust complains that the lifetimes aren't the same
         std::mem::transmute(borrowed)
     }
 
@@ -278,7 +278,7 @@ where
 {
 }
 
-/// A trait that you implement in order to use a borrowed type with `BorrowedWithOwner`
+/// An impl of this trait represents a type that is parameterized by a lifetime. This is used by `BorrowedWithOwner`, so it can "construct" the type of the borrowed object with the appropriate lifetime when you call one of the methods that give you access to it (e.g. `.borrowed()`, `.borrowed_mut()`, or `.map()`).
 ///
 /// For example, if you have a type `Foo<'a>`, you would implement `for<'a> BorrowWithLifetime<'a>`
 /// for it like so:
