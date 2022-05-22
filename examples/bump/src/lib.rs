@@ -11,8 +11,8 @@ impl<'a> BorrowWithLifetime<'a> for BorrowSliceOfStrs {
 
 #[test]
 fn test_bumpalo_herd() {
+    // create a bump allocator along with some string slices allocated in it
     let herd = RefWithOwner::new(Arc::new(Herd::new()));
-
     let titles_with_herd = herd.map::<BorrowSliceOfStrs, _>(|herd, _| {
         let member = herd.get();
 
@@ -27,6 +27,9 @@ fn test_bumpalo_herd() {
         member.alloc_slice_fill_iter(iter)
     });
 
+    // pass the string slices (along their owner, the bump allocator) to a couple of threads,
+    // which is possible since the combined `BorrowedWithOwner` object is `'static` and can be
+    // cloned if the Owner and Borrowed types implement `Clone`.
     #[allow(clippy::needless_collect)]
     let join_handles = (0..2)
         .map(|_| {
